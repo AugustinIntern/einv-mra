@@ -26,7 +26,7 @@ const INVOICE_URL =
   process.env.MRA_INVOICE_URL ||
   "https://vfisc.mra.mu/realtime/invoice/transmit";
 
-// ── Authentication ────────────────────────────────────────────────────────────
+// ── Authentication
 
 /**
  * Authenticates with MRA and returns the token + decrypted invoice key.
@@ -100,7 +100,7 @@ async function authenticate() {
   };
 }
 
-// ── Invoice Submission ────────────────────────────────────────────────────────
+// ── Invoice Submission 
 
 /**
  * Submits encrypted invoices to the MRA transmission endpoint.
@@ -137,7 +137,7 @@ async function submitInvoice(token, encryptedInvoice) {
   return response.data;
 }
 
-// ── Main Orchestrator ─────────────────────────────────────────────────────────
+// ── Main Orchestrator
 
 /**
  * Full flow: authenticate → encrypt invoices → transmit → return MRA response.
@@ -162,7 +162,7 @@ async function processInvoices(invoices) {
   return result;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers
 
 /** Formats a Date as "yyyyMMdd HH:mm:ss" — matches C# DateTime format string */
 function formatDateTime(date) {

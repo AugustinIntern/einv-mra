@@ -2,7 +2,7 @@
  * Auth Routes
  *
  * POST /api/auth/token → Authenticate with MRA and return the token
- *                        (useful for debugging auth separately from invoice submission)
+ *
  */
 
 const express = require("express");

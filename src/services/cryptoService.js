@@ -1,7 +1,7 @@
 /**
  * MRA Crypto Service
  *
- * Mirrors the C# cryptography logic:
+ * Mirrors the cryptography logic:
  *  - AES-256-ECB key generation (sent to MRA inside the auth payload)
  *  - RSA-PKCS1v1.5 encryption of the auth payload with the MRA public key
  *  - AES-256-ECB decryption of the key returned by MRA
@@ -12,7 +12,7 @@ const crypto = require("crypto");
 const forge = require("node-forge");
 const fs = require("fs");
 
-// ── AES Key Generation ────────────────────────────────────────────────────────
+// ── AES Key Generation
 
 /**
  * Generates a random 256-bit AES key (matches C# Aes.Create() + GenerateKey())
@@ -27,7 +27,7 @@ function generateAesKey() {
   };
 }
 
-// ── RSA Encryption (Auth Payload) ─────────────────────────────────────────────
+// ── RSA Encryption (Auth Payload)
 
 /**
  * Loads the MRA public certificate and encrypts the auth payload JSON
@@ -74,7 +74,7 @@ function encryptAuthPayload(authPayload) {
   return forge.util.encode64(encrypted);
 }
 
-// ── AES Decryption (MRA Key) ──────────────────────────────────────────────────
+// ── AES Decryption (MRA Key) 
 
 /**
  * Decrypts the base64-encoded key returned by MRA using our AES key.
@@ -122,7 +122,7 @@ function decryptMraKey(aesKeyBuffer, mraKeyBase64) {
   }
 }
 
-// ── AES Encryption (Invoice) ──────────────────────────────────────────────────
+// ── AES Encryption (Invoice) 
 
 /**
  * Encrypts the invoice JSON list using the decrypted MRA key.
