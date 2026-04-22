@@ -19,20 +19,20 @@ router.post("/submit", apiKeyAuth, async (req, res, next) => { // ADD apiKeyAuth
     const result = await processInvoices(invoices);
     const fiscalised = result.fiscalisedInvoices ?? [];
 
-    // Log each invoice result to audit table
-    // for (const inv of fiscalised) {
-    //   await prisma.auditLog.create({
-    //     data: {
-    //       userId: user.id,
-    //       invoiceNumber: inv.invoiceIdentifier ?? "unknown",
-    //       status: inv.status ?? "unknown",
-    //       irn: inv.irn ?? null,
-    //       errorMessage: inv.errorMessages
-    //         ? inv.errorMessages.map((e) => e.description).join("; ")
-    //         : null,
-    //     },
-    //   }).catch(() => {}); // non-blocking — don't fail the request if logging fails
-    // }
+    //Log each invoice result to audit table
+    for (const inv of fiscalised) {
+      await prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          invoiceNumber: inv.invoiceIdentifier ?? "unknown",
+          status: inv.status ?? "unknown",
+          irn: inv.irn ?? null,
+          errorMessage: inv.errorMessages
+            ? inv.errorMessages.map((e) => e.description).join("; ")
+            : null,
+        },
+      }).catch(() => {}); // non-blocking — don't fail the request if logging fails
+    }
 
     return res.json({
       success: true,

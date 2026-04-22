@@ -35,3 +35,14 @@ model ApiKey {
   lastUsedAt DateTime?
   createdAt  DateTime  @default(now())
 }
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  invoiceNumber String
+  status        String
+  irn           String?
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+}
