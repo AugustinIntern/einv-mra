@@ -23,6 +23,7 @@ model User {
   userName     String    @unique
   areaCode     Int
   apiKeys      ApiKey[]
+  auditLogs    AuditLog[]
 }
 
 model ApiKey {
