@@ -101,7 +101,6 @@ async function authenticate() {
 }
 
 // ── Invoice Submission 
-
 /**
  * Submits encrypted invoices to the MRA transmission endpoint.
  *

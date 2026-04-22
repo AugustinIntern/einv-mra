@@ -184,7 +184,7 @@ function validateSeller(seller, prefix) {
 
   // brn — Mandatory, String(10)
   check(errors, !seller.brn, `${prefix}.seller: brn is mandatory`);
-  check(errors, seller.brn && !isValidString(seller.brn, 7),
+  check(errors, seller.brn && !isValidString(seller.brn, 10),
     `${prefix}.seller: brn must be a string max 10 chars`);
 
   // businessAddr — Mandatory, String(250)
@@ -249,7 +249,7 @@ function validateBuyer(buyer, prefix, transactionType) {
   if (transactionType === "B2B") {
     check(errors, !buyer.brn, `${prefix}.buyer: brn is mandatory for B2B transactions`);
   }
-  check(errors, buyer.brn && !isValidString(buyer.brn, 7),
+  check(errors, buyer.brn && !isValidString(buyer.brn, 10),
     `${prefix}.buyer: brn must be a string max 10 chars`);
 
   // businessAddr — Optional, String(100)
@@ -446,7 +446,7 @@ function generateSampleInvoice() {
         name: "Amyaaz Aumeer",
         tradeName: "TEST",
         tan: "28174903",
-        brn: "C2320004",
+        brn: "C23200040",
         businessAddr: "Port Louis",
         businessPhoneNo: "2824357",
         ebsCounterNo: "a1",

@@ -10,7 +10,7 @@ const router = express.Router();
 const { processInvoices } = require("../services/mraService");
 const { generateSampleInvoice, validateInvoices } = require("../models/invoice");
 
-// ── POST /api/invoices/submit ─────────────────────────────────────────────────
+// ── POST /api/invoices/submit
 /**
  * @body Array of MRAInvoice objects
  * @returns MRA fiscalisation response
@@ -96,7 +96,7 @@ router.post("/submit", async (req, res, next) => {
   }
 });
 
-// ── POST /api/invoices/submit-sample ─────────────────────────────────────────
+// ── POST /api/invoices/submit-sample
 /**
  * Submits the built-in sample invoice (no body required).
  * Useful for quick Postman smoke-tests.
@@ -119,7 +119,7 @@ router.post("/submit-sample", async (req, res, next) => {
   }
 });
 
-// ── GET /api/invoices/sample ──────────────────────────────────────────────────
+// ── GET /api/invoices/sample 
 /**
  * Returns the sample invoice JSON so you can inspect / copy-paste it into
  * the /submit endpoint body in Postman.
