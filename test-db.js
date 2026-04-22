@@ -17,6 +17,7 @@ async function main() {
             brn: "BRN123456",
             tan: "TAN789",
             userName: "testuser",
+            areaCode: "100"
         },
     });
     console.log("Created user:", user);
