@@ -15,7 +15,7 @@ router.use((req, res, next) => {
 
 // POST /admin/users — Create a new user and generate their first API key
 router.post("/users", async (req, res) => {
-  const { name, ebsId, brn, tan, businessAddr, phone, userName } = req.body;
+  const { name, ebsId, brn, tan, businessAddr, phone, userName, areaCode} = req.body;
 
   if (!name || !ebsId || !brn || !userName) {
     return res.status(400).json({
@@ -32,7 +32,7 @@ router.post("/users", async (req, res) => {
     }
 
     const user = await prisma.user.create({
-      data: { name, ebsId, brn, tan, businessAddr, phone, userName },
+      data: { name, ebsId, brn, tan, businessAddr, phone, userName, areaCode},
     });
 
     // Generate API key — raw key returned ONCE, only hash stored
