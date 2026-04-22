@@ -30,6 +30,7 @@ router.post("/submit", apiKeyAuth, async (req, res, next) => { // ADD apiKeyAuth
           errorMessage: inv.errorMessages
             ? inv.errorMessages.map((e) => e.description).join("; ")
             : null,
+          fiscalisedAt: inv.status === "SUCCESS" ? new Date() : null,
         },
       }).catch(() => {}); // non-blocking — don't fail the request if logging fails
     }
