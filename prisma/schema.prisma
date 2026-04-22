@@ -21,7 +21,7 @@ model User {
   phone        String?
   createdAt    DateTime   @default(now())
   userName     String    @unique
-  areaCode     Integer
+  areaCode     Int
   apiKeys      ApiKey[]
 }
 
