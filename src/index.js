@@ -2,19 +2,18 @@ require('dotenv').config();
 const express = require("express");
 const app = express();
 
-// ── Middleware 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Basic request logger
 app.use((req, _res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
 
-// ── Routes 
+// ── Routes
 app.use("/api/invoices", require("./routes/invoices"));
 app.use("/api/auth", require("./routes/auth"));
+app.use("/admin", require("./routes/admin")); // ADD THIS
 
 // Health check
 app.get("/", (_req, res) => {
@@ -23,14 +22,16 @@ app.get("/", (_req, res) => {
     status: "running",
     version: "1.0.0",
     endpoints: {
-      "POST /api/invoices/submit": "Submit invoices for fiscalisation",
+      "POST /api/invoices/submit": "Submit invoices for fiscalisation (requires x-api-key)",
       "POST /api/invoices/submit-sample": "Submit the built-in sample invoice",
       "POST /api/auth/token": "Authenticate with MRA and get a token",
+      "POST /admin/users": "Create a user and API key (requires x-admin-secret)",
+      "GET /admin/users": "List all users (requires x-admin-secret)",
+      "GET /admin/audit": "View audit log (requires x-admin-secret)",
     },
   });
 });
 
-// Global error handler
 app.use((err, _req, res, _next) => {
   console.error("Unhandled error:", err);
   res.status(500).json({
@@ -39,11 +40,9 @@ app.use((err, _req, res, _next) => {
   });
 });
 
-// ── Start 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`MRA Invoice API listening on port ${PORT}`);
 });
 
-// Required by Vercel (serverless export)
 module.exports = app;

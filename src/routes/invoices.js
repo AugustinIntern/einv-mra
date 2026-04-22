@@ -1,106 +1,50 @@
-/**
- * Invoice Routes
- *
- * POST /api/invoices/submit        → Submit custom invoices
- * POST /api/invoices/submit-sample → Submit the built-in sample invoice
- */
-
 const express = require("express");
 const router = express.Router();
 const { processInvoices } = require("../services/mraService");
 const { generateSampleInvoice, validateInvoices } = require("../models/invoice");
+const apiKeyAuth = require("../middleware/apiKeyAuth"); // ADD THIS
+const prisma = require("../db");                        // ADD THIS
 
-// ── POST /api/invoices/submit
-/**
- * @body Array of MRAInvoice objects
- * @returns MRA fiscalisation response
- *
- * Example Postman body (raw JSON):
- * [
- *   {
- *     "invoiceCounter": "1",
- *     "transactionType": "B2C",
- *     "invoiceTypeDesc": "STD",
- *     "currency": "MUR",
- *     "invoiceIdentifier": "SI-MY-20241001001",
- *     "previousNoteHash": "0",
- *     "reasonStated": "",
- *     "invoiceRefIdentifier": "",
- *     "totalVatAmount": "15.0",
- *     "totalAmtWoVatCur": "100.0",
- *     "totalAmtWoVatMur": "100.0",
- *     "invoiceTotal": "115.0",
- *     "discountTotalAmount": "0",
- *     "totalAmtPaid": "115.0",
- *     "dateTimeInvoiceIssued": "20241001 10:30:00",
- *     "personType": "VATR",
- *     "salesTransactions": "CASH",
- *     "seller": {
- *       "name": "Your Company Name",
- *       "tradeName": "Trade Name",
- *       "tan": "your_tan",
- *       "brn": "your_brn",
- *       "businessAddr": "Port Louis",
- *       "businessPhoneNo": "2000000",
- *       "ebsCounterNo": "a1"
- *     },
- *     "buyer": {
- *       "name": "Customer Name",
- *       "tan": "",
- *       "brn": "",
- *       "businessAddr": "",
- *       "buyerType": "IND",
- *       "nic": ""
- *     },
- *     "itemList": [
- *       {
- *         "itemNo": "1",
- *         "taxCode": "TC01",
- *         "nature": "GOODS",
- *         "productCodeMra": "pdtCode",
- *         "productCodeOwn": "myCode",
- *         "itemDesc": "Item Description",
- *         "quantity": "1",
- *         "unitPrice": "100",
- *         "discount": "0",
- *         "discountedValue": "0",
- *         "amtWoVatCur": "100",
- *         "amtWoVatMur": "100",
- *         "vatAmt": "15",
- *         "totalPrice": "115"
- *       }
- *     ]
- *   }
- * ]
- */
-router.post("/submit", async (req, res, next) => {
+// ── POST /api/invoices/submit  (now protected)
+router.post("/submit", apiKeyAuth, async (req, res, next) => { // ADD apiKeyAuth
   try {
     const invoices = req.body;
+    const user = req.currentUser; // available after auth middleware
 
-    // Validate
     const { valid, errors } = validateInvoices(invoices);
     if (!valid) {
       return res.status(400).json({ error: "Validation failed", details: errors });
     }
 
     const result = await processInvoices(invoices);
+    const fiscalised = result.fiscalisedInvoices ?? [];
 
-    // Surface fiscalised invoice details clearly
+    // Log each invoice result to audit table
+    // for (const inv of fiscalised) {
+    //   await prisma.auditLog.create({
+    //     data: {
+    //       userId: user.id,
+    //       invoiceNumber: inv.invoiceIdentifier ?? "unknown",
+    //       status: inv.status ?? "unknown",
+    //       irn: inv.irn ?? null,
+    //       errorMessage: inv.errorMessages
+    //         ? inv.errorMessages.map((e) => e.description).join("; ")
+    //         : null,
+    //     },
+    //   }).catch(() => {}); // non-blocking — don't fail the request if logging fails
+    // }
+
     return res.json({
       success: true,
       mraResponse: result,
-      fiscalisedInvoices: result.fiscalisedInvoices ?? [],
+      fiscalisedInvoices: fiscalised,
     });
   } catch (err) {
     next(err);
   }
 });
 
-// ── POST /api/invoices/submit-sample
-/**
- * Submits the built-in sample invoice (no body required).
- * Useful for quick Postman smoke-tests.
- */
+// ── POST /api/invoices/submit-sample (no auth — for testing only)
 router.post("/submit-sample", async (req, res, next) => {
   try {
     const sampleInvoices = generateSampleInvoice();
@@ -119,11 +63,7 @@ router.post("/submit-sample", async (req, res, next) => {
   }
 });
 
-// ── GET /api/invoices/sample 
-/**
- * Returns the sample invoice JSON so you can inspect / copy-paste it into
- * the /submit endpoint body in Postman.
- */
+// ── GET /api/invoices/sample
 router.get("/sample", (_req, res) => {
   res.json(generateSampleInvoice());
 });
