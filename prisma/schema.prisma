@@ -45,5 +45,6 @@ model AuditLog {
   status        String
   irn           String?
   errorMessage  String?
+  fiscalisedAt  DateTime?
   createdAt     DateTime @default(now())
 }
