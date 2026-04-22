@@ -4,6 +4,20 @@ const prisma = require("../db");
 
 const router = express.Router();
 
+const toMUT = (date) => {
+  if (!date) return null;
+  return new Date(date).toLocaleString("en-MU", {
+    timeZone: "Indian/Mauritius",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+};
+
 // Protect all admin routes with a static secret
 router.use((req, res, next) => {
   const adminSecret = req.headers["x-admin-secret"];
@@ -123,15 +137,38 @@ router.delete("/keys/:id", async (req, res) => {
 
 // GET /admin/audit — View fiscalization audit log
 router.get("/audit", async (req, res) => {
+  const { ebsId, status, page = 1, limit = 100 } = req.query;
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+
+  const where = {};
+  if (status) where.status = status;
+  if (ebsId) where.user = { ebsId };
+
   try {
-    const logs = await prisma.auditLog.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 100,
-      include: {
-        user: { select: { name: true, ebsId: true } },
-      },
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: parseInt(limit),
+        skip,
+        include: {
+          user: { select: { name: true, ebsId: true } },
+        },
+      }),
+      prisma.auditLog.count({ where }),
+    ]);
+
+    res.json({
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / parseInt(limit)),
+      logs: logs.map((log) => ({
+        ...log,
+        fiscalisedAt: toMUT(log.fiscalisedAt),
+        createdAt: toMUT(log.createdAt),
+      })),
     });
-    res.json(logs);
   } catch (err) {
     res.status(500).json({ error: "Internal server error" });
   }
