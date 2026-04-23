@@ -36,7 +36,7 @@ const INVOICE_URL =
 async function authenticate(user = {}) {
   const username = user.userName;
   const password = user.password;
-  const ebsMraId = user.ebsId;
+  const ebsId = user.ebsId;
   const areaCode = user.areaCode ? String(user.areaCode) : null;
 
   if (!username || !password || !ebsId || !areaCode) {
