@@ -34,14 +34,14 @@ const INVOICE_URL =
  * @returns {{ token: string, mraKey: string, expiryDate: string }}
  */
 async function authenticate(user = {}) {
-  const username = user.mraUsername;
+  const username = user.userName;
   const password = user.password;
-  const ebsMraId = user.ebsMraId;
+  const ebsMraId = user.ebsId;
   const areaCode = user.areaCode ? String(user.areaCode) : null;
 
-  if (!username || !password || !ebsMraId || !areaCode) {
+  if (!username || !password || !ebsId || !areaCode) {
     throw new Error(
-      "Missing MRA credentials. Ensure mraUsername, password, ebsMraId and areaCode are set for this user."
+      "Missing MRA credentials. Ensure userName, password, ebsId and areaCode are set for this user."
     );
   }
 
@@ -62,7 +62,7 @@ async function authenticate(user = {}) {
   };
 
   console.log(
-    `[MRA Auth] Sending request — username: ${username} | ebsMraId: ${ebsMraId} | areaCode: ${areaCode}`
+    `[MRA Auth] Sending request — username: ${username} | ebsId: ${ebsId} | areaCode: ${areaCode}`
   );
 
   const response = await axios.post(AUTH_URL, authRequest, {
@@ -70,7 +70,7 @@ async function authenticate(user = {}) {
     headers: {
       "Content-Type": "application/json",
       username,
-      ebsMraId,
+      ebsId,
       areaCode,
     },
     timeout: 30_000,
@@ -103,13 +103,13 @@ async function authenticate(user = {}) {
 }
 
 async function submitInvoice(token, encryptedInvoice, user = {}) {
-  const username = user.mraUsername;
-  const ebsMraId = user.ebsMraId;
+  const username = user.userName;
+  const ebsId = user.ebsId;
   const areaCode = user.areaCode ? String(user.areaCode) : null;
 
   if (!username || !ebsMraId || !areaCode) {
     throw new Error(
-      "Missing MRA credentials. Ensure mraUsername, ebsMraId and areaCode are set for this user."
+      "Missing MRA credentials. Ensure userName, ebsMraId and areaCode are set for this user."
     );
   }
 
