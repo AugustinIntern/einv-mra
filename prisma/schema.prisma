@@ -18,6 +18,8 @@ model User {
   ebsId     String     @unique
   areaCode  Int
   password  String
+  mraToken        String?   @db.Text
+  mraTokenExpiry  DateTime?
   createdAt DateTime   @default(now())
   apiKeys   ApiKey[]
   auditLogs AuditLog[]
