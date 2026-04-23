@@ -33,10 +33,12 @@ const INVOICE_URL =
  *
  * @returns {{ token: string, mraKey: string, expiryDate: string }}
  */
-async function authenticate() {
+async function authenticate(user = {}) {
   const username = process.env.MRA_USERNAME;
-  const password = process.env.MRA_PASSWORD;
   const ebsMraId = process.env.MRA_EBS_MRA_ID;
+
+  // Use password from authenticated user, fall back to .env
+  const password = user.password || process.env.MRA_PASSWORD;
 
   if (!username || !password || !ebsMraId) {
     throw new Error(
@@ -44,10 +46,8 @@ async function authenticate() {
     );
   }
 
-  // Step 1: Generate ephemeral AES key
   const { keyBuffer, keyBase64 } = generateAesKey();
 
-  // Step 2: Build auth payload
   const authPayload = {
     username,
     password,
@@ -55,18 +55,15 @@ async function authenticate() {
     refreshToken: true,
   };
 
-  // Step 3 + 4: RSA-encrypt the payload and base64-encode it
   const encryptedPayload = encryptAuthPayload(authPayload);
 
-  // Step 5: Wrap in request envelope
   const authRequest = {
     requestId: uuidv4().replace(/-/g, ""),
     payload: encryptedPayload,
   };
 
-  console.log("[MRA Auth] Sending authentication request...");
+  console.log(`[MRA Auth] Sending authentication request — ebsId: ${user.ebsId ?? "unknown"}`);
 
-  // Step 6: POST to MRA auth endpoint
   const response = await axios.post(AUTH_URL, authRequest, {
     httpsAgent,
     headers: {
@@ -82,13 +79,12 @@ async function authenticate() {
   if (mraResponse.status !== "SUCCESS") {
     throw new Error(
       `MRA authentication failed. Status: ${mraResponse.status}. ` +
-        `Response: ${JSON.stringify(mraResponse)}`
+      `Response: ${JSON.stringify(mraResponse)}`
     );
   }
 
   console.log(`[MRA Auth] Success. Token expires: ${mraResponse.expiryDate}`);
 
-  // Step 7: Decrypt the key MRA sent back using our ephemeral AES key
   const mraKey = decryptMraKey(keyBuffer, mraResponse.key);
 
   return {
@@ -144,19 +140,19 @@ async function submitInvoice(token, encryptedInvoice) {
  * @param {Array} invoices - Array of MRAInvoice objects
  * @returns {object} Full fiscalisation response from MRA
  */
-async function processInvoices(invoices) {
+async function processInvoices(invoices, user = {}) {
   if (!Array.isArray(invoices) || invoices.length === 0) {
     throw new Error("invoices must be a non-empty array.");
   }
 
-  // 1. Auth
-  const { token, mraKey } = await authenticate();
+  // 1. Auth — pass user so password is taken from DB
+  const { token, mraKey } = await authenticate(user);
 
   // 2. Encrypt invoices with MRA key
   const encryptedInvoice = encryptInvoices(invoices, mraKey);
 
-  // 3. Submit
-  const result = await submitInvoice(token, encryptedInvoice);
+  // 3. Submit — pass user so areaCode is applied
+  const result = await submitInvoice(token, encryptedInvoice, user);
 
   return result;
 }

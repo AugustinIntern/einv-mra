@@ -16,7 +16,7 @@ router.post("/submit", apiKeyAuth, async (req, res, next) => { // ADD apiKeyAuth
       return res.status(400).json({ error: "Validation failed", details: errors });
     }
 
-    const result = await processInvoices(invoices);
+    const result = await processInvoices(invoices, user);
     const fiscalised = result.fiscalisedInvoices ?? [];
 
     //Log each invoice result to audit table
