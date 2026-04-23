@@ -32,7 +32,7 @@ router.post("/users", async (req, res) => {
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
       data: {
@@ -40,7 +40,7 @@ router.post("/users", async (req, res) => {
         userName,
         ebsId,
         areaCode: parseInt(areaCode),
-        password: hashedPassword,
+        password: password,
       },
     });
 
