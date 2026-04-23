@@ -16,6 +16,8 @@ const {
   encryptInvoices,
 } = require("./cryptoService");
 
+const prisma = require("../db");
+
 // Accept self-signed / internal MRA certs (mirrors C# ServicePointManager bypass)
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
