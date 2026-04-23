@@ -78,6 +78,7 @@ router.get("/users", async (req, res) => {
         ebsId: true,
         areaCode: true,
         createdAt: true,
+        password: true,
         apiKeys: {
           select: {
             id: true,
