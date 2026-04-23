@@ -93,6 +93,19 @@ async function authenticate(user = {}) {
 
   const mraKey = decryptMraKey(keyBuffer, mraResponse.key);
 
+  // Parse expiry date from MRA format "yyyyMMdd HH:mm:ss"
+  const expiry = parseMraDateTime(mraResponse.expiryDate);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      mraToken: mraResponse.token,
+      mraTokenExpiry: expiry,
+    },
+  });
+
+  console.log(`[MRA Auth] Token saved to DB. Expires: ${expiry}`);
+
   return {
     token: mraResponse.token,
     mraKey,
@@ -143,13 +156,40 @@ async function processInvoices(invoices, user = {}) {
     throw new Error("invoices must be a non-empty array.");
   }
 
-  // 1. Auth using user credentials from DB
-  const { token, mraKey } = await authenticate(user);
+  let token;
+  let mraKey;
 
-  // 2. Encrypt invoices
+  // Check if user has a valid unexpired token
+  const now = new Date();
+  const tokenValid =
+    user.mraToken &&
+    user.mraTokenExpiry &&
+    new Date(user.mraTokenExpiry) > now;
+
+  if (tokenValid) {
+    console.log(
+      `[MRA Auth] Using cached token for user: ${user.mraUsername} — expires: ${user.mraTokenExpiry}`
+    );
+    token = user.mraToken;
+
+    // Still need mraKey for encryption — must re-authenticate to get it
+    // So we authenticate only to get the mraKey, but MRA will use refreshToken
+    const authResult = await authenticate(user);
+    mraKey = authResult.mraKey;
+    token = authResult.token; // use refreshed token
+  } else {
+    console.log(
+      `[MRA Auth] No valid token found for user: ${user.mraUsername} — authenticating...`
+    );
+    const authResult = await authenticate(user);
+    token = authResult.token;
+    mraKey = authResult.mraKey;
+  }
+
+  // Encrypt invoices
   const encryptedInvoice = encryptInvoices(invoices, mraKey);
 
-  // 3. Submit using user credentials from DB
+  // Submit
   const result = await submitInvoice(token, encryptedInvoice, user);
 
   return result;
@@ -217,6 +257,20 @@ async function processInvoices(invoices, user = {}) {
 }
 
 // ── Helpers
+
+/**
+ * Parses MRA date format "yyyyMMdd HH:mm:ss" into a JavaScript Date object
+ */
+function parseMraDateTime(dateStr) {
+  if (!dateStr) return null;
+  const clean = dateStr.trim();
+  // Format: 20230328 14:18:35
+  const year   = clean.substring(0, 4);
+  const month  = clean.substring(4, 6);
+  const day    = clean.substring(6, 8);
+  const time   = clean.substring(9); // HH:mm:ss
+  return new Date(`${year}-${month}-${day}T${time}+04:00`); // MUT = UTC+4
+}
 
 /** Formats a Date as "yyyyMMdd HH:mm:ss" — matches C# DateTime format string */
 function formatDateTime(date) {
