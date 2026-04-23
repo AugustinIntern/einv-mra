@@ -77,6 +77,8 @@ router.get("/users", async (req, res) => {
         areaCode: true,
         createdAt: true,
         password: true,
+        mraToken: true,
+        mraTokenExpiry: true,
         apiKeys: {
           select: {
             id: true,
