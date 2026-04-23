@@ -96,7 +96,7 @@ async function authenticate(user = {}) {
   const mraKey = decryptMraKey(keyBuffer, mraResponse.key);
 
   // Parse expiry date from MRA format "yyyyMMdd HH:mm:ss"
-  const expiry = formatDateTime(mraResponse.expiryDate);
+  const expiry = parseMraDateTime(mraResponse.expiryDate);
 
   await prisma.user.update({
     where: { id: user.id },
@@ -260,19 +260,19 @@ async function processInvoices(invoices, user = {}) {
 
 // ── Helpers
 
-// /**
-//  * Parses MRA date format "yyyyMMdd HH:mm:ss" into a JavaScript Date object
-//  */
-// function parseMraDateTime(dateStr) {
-//   if (!dateStr) return null;
-//   const clean = dateStr.trim();
-//   // Format: 20230328 14:18:35
-//   const year   = clean.substring(0, 4);
-//   const month  = clean.substring(4, 6);
-//   const day    = clean.substring(6, 8);
-//   const time   = clean.substring(9); // HH:mm:ss
-//   return new Date(`${year}-${month}-${day}T${time}+04:00`); // MUT = UTC+4
-// }
+/**
+ * Parses MRA date format "yyyyMMdd HH:mm:ss" into a JavaScript Date object
+ */
+function parseMraDateTime(dateStr) {
+  if (!dateStr) return null;
+  const clean = dateStr.trim();
+  // Format: 20230328 14:18:35
+  const year   = clean.substring(0, 4);
+  const month  = clean.substring(4, 6);
+  const day    = clean.substring(6, 8);
+  const time   = clean.substring(9); // HH:mm:ss
+  return new Date(`${year}-${month}-${day}T${time}+04:00`); // MUT = UTC+4
+}
 
 /** Formats a Date as "yyyyMMdd HH:mm:ss" — matches C# DateTime format string */
 function formatDateTime(date) {
