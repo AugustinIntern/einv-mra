@@ -16,11 +16,11 @@ router.use((req, res, next) => {
 
 // POST /admin/users — Create a new user
 router.post("/users", async (req, res) => {
-  const { name, userName, ebsId, areaCode, password } = req.body;
+  const { name, userName, ebsId, areaCode, password} = req.body;
 
   if (!name || !userName || !ebsId || !areaCode || !password) {
     return res.status(400).json({
-      error: "name, userName, ebsId, areaCode and password are required",
+      error: "name, userName, ebsId, areaCode, password",
     });
   }
 
@@ -32,7 +32,6 @@ router.post("/users", async (req, res) => {
       });
     }
 
-    // Hash the password before storing
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
@@ -45,7 +44,6 @@ router.post("/users", async (req, res) => {
       },
     });
 
-    // Generate API key
     const rawKey = crypto.randomBytes(32).toString("hex");
     const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
 
@@ -53,7 +51,7 @@ router.post("/users", async (req, res) => {
       data: { userId: user.id, keyHash, label: "default" },
     });
 
-    // Return user without password
+    // Never return password in response
     const { password: _, ...safeUser } = user;
 
     res.status(201).json({

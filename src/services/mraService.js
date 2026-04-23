@@ -34,15 +34,14 @@ const INVOICE_URL =
  * @returns {{ token: string, mraKey: string, expiryDate: string }}
  */
 async function authenticate(user = {}) {
-  const username = process.env.MRA_USERNAME;
-  const ebsMraId = process.env.MRA_EBS_MRA_ID;
+  const username = user.mraUsername;
+  const password = user.password;
+  const ebsMraId = user.ebsMraId;
+  const areaCode = user.areaCode ? String(user.areaCode) : null;
 
-  // Use password from authenticated user, fall back to .env
-  const password = user.password || process.env.MRA_PASSWORD;
-
-  if (!username || !password || !ebsMraId) {
+  if (!username || !password || !ebsMraId || !areaCode) {
     throw new Error(
-      "Missing MRA credentials. Set MRA_USERNAME, MRA_PASSWORD, MRA_EBS_MRA_ID in environment."
+      "Missing MRA credentials. Ensure mraUsername, password, ebsMraId and areaCode are set for this user."
     );
   }
 
@@ -62,7 +61,9 @@ async function authenticate(user = {}) {
     payload: encryptedPayload,
   };
 
-  console.log(`[MRA Auth] Sending authentication request — ebsId: ${user.ebsId ?? "unknown"}`);
+  console.log(
+    `[MRA Auth] Sending request — username: ${username} | ebsMraId: ${ebsMraId} | areaCode: ${areaCode}`
+  );
 
   const response = await axios.post(AUTH_URL, authRequest, {
     httpsAgent,
@@ -70,8 +71,13 @@ async function authenticate(user = {}) {
       "Content-Type": "application/json",
       username,
       ebsMraId,
+      areaCode,
     },
     timeout: 30_000,
+  }).catch((err) => {
+    console.error("[MRA Auth Error] Status:", err.response?.status);
+    console.error("[MRA Auth Error] Body:", JSON.stringify(err.response?.data));
+    throw err;
   });
 
   const mraResponse = response.data;
@@ -94,6 +100,59 @@ async function authenticate(user = {}) {
     responseId: mraResponse.responseId,
     requestId: mraResponse.requestId,
   };
+}
+
+async function submitInvoice(token, encryptedInvoice, user = {}) {
+  const username = user.mraUsername;
+  const ebsMraId = user.ebsMraId;
+  const areaCode = user.areaCode ? String(user.areaCode) : null;
+
+  if (!username || !ebsMraId || !areaCode) {
+    throw new Error(
+      "Missing MRA credentials. Ensure mraUsername, ebsMraId and areaCode are set for this user."
+    );
+  }
+
+  const requestPayload = {
+    requestId: uuidv4().replace(/-/g, ""),
+    requestDateTime: formatDateTime(new Date()),
+    encryptedInvoice,
+  };
+
+  console.log(
+    `[MRA Invoice] Submitting — username: ${username} | ebsMraId: ${ebsMraId} | areaCode: ${areaCode}`
+  );
+
+  const response = await axios.post(INVOICE_URL, requestPayload, {
+    httpsAgent,
+    headers: {
+      "Content-Type": "application/json",
+      username,
+      ebsMraId,
+      areaCode,
+      token,
+    },
+    timeout: 30_000,
+  });
+
+  return response.data;
+}
+
+async function processInvoices(invoices, user = {}) {
+  if (!Array.isArray(invoices) || invoices.length === 0) {
+    throw new Error("invoices must be a non-empty array.");
+  }
+
+  // 1. Auth using user credentials from DB
+  const { token, mraKey } = await authenticate(user);
+
+  // 2. Encrypt invoices
+  const encryptedInvoice = encryptInvoices(invoices, mraKey);
+
+  // 3. Submit using user credentials from DB
+  const result = await submitInvoice(token, encryptedInvoice, user);
+
+  return result;
 }
 
 // ── Invoice Submission 
