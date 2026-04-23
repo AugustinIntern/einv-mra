@@ -1,24 +1,11 @@
 const express = require("express");
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const prisma = require("../db");
 
 const router = express.Router();
 
-const toMUT = (date) => {
-  if (!date) return null;
-  return new Date(date).toLocaleString("en-MU", {
-    timeZone: "Indian/Mauritius",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-};
-
-// Protect all admin routes with a static secret
+// Protect all admin routes
 router.use((req, res, next) => {
   const adminSecret = req.headers["x-admin-secret"];
   if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
@@ -27,13 +14,13 @@ router.use((req, res, next) => {
   next();
 });
 
-// POST /admin/users — Create a new user and generate their first API key
+// POST /admin/users — Create a new user
 router.post("/users", async (req, res) => {
-  const { name, ebsId, brn, tan, businessAddr, phone, userName, areaCode} = req.body;
+  const { name, userName, ebsId, areaCode, password } = req.body;
 
-  if (!name || !ebsId || !brn || !userName) {
+  if (!name || !userName || !ebsId || !areaCode || !password) {
     return res.status(400).json({
-      error: "name, ebsId, brn and userName are required",
+      error: "name, userName, ebsId, areaCode and password are required",
     });
   }
 
@@ -45,25 +32,34 @@ router.post("/users", async (req, res) => {
       });
     }
 
+    // Hash the password before storing
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = await prisma.user.create({
-      data: { name, ebsId, brn, tan, businessAddr, phone, userName, areaCode},
+      data: {
+        name,
+        userName,
+        ebsId,
+        areaCode: parseInt(areaCode),
+        password: hashedPassword,
+      },
     });
 
-    // Generate API key — raw key returned ONCE, only hash stored
+    // Generate API key
     const rawKey = crypto.randomBytes(32).toString("hex");
-    const keyHash = crypto
-      .createHash("sha256")
-      .update(rawKey)
-      .digest("hex");
+    const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
 
     await prisma.apiKey.create({
       data: { userId: user.id, keyHash, label: "default" },
     });
 
+    // Return user without password
+    const { password: _, ...safeUser } = user;
+
     res.status(201).json({
       message: "User created successfully",
-      user,
-      apiKey: rawKey, // Save this — it will never be shown again
+      user: safeUser,
+      apiKey: rawKey,
     });
   } catch (err) {
     console.error("Error creating user:", err);
@@ -75,7 +71,13 @@ router.post("/users", async (req, res) => {
 router.get("/users", async (req, res) => {
   try {
     const users = await prisma.user.findMany({
-      include: {
+      select: {
+        id: true,
+        name: true,
+        userName: true,
+        ebsId: true,
+        areaCode: true,
+        createdAt: true,
         apiKeys: {
           select: {
             id: true,
@@ -103,10 +105,7 @@ router.post("/users/:id/rotate-key", async (req, res) => {
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const rawKey = crypto.randomBytes(32).toString("hex");
-    const keyHash = crypto
-      .createHash("sha256")
-      .update(rawKey)
-      .digest("hex");
+    const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
 
     await prisma.apiKey.create({
       data: { userId: id, keyHash, label: label || "rotated" },
@@ -114,7 +113,7 @@ router.post("/users/:id/rotate-key", async (req, res) => {
 
     res.json({
       message: "New API key generated",
-      apiKey: rawKey, // Save this — it will never be shown again
+      apiKey: rawKey,
     });
   } catch (err) {
     res.status(500).json({ error: "Internal server error" });
@@ -134,6 +133,21 @@ router.delete("/keys/:id", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+// Helper to convert UTC to Mauritius Time
+const toMUT = (date) => {
+  if (!date) return null;
+  return new Date(date).toLocaleString("en-MU", {
+    timeZone: "Indian/Mauritius",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+};
 
 // GET /admin/audit — View fiscalization audit log
 router.get("/audit", async (req, res) => {
