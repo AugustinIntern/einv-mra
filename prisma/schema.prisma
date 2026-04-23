@@ -12,18 +12,15 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  name         String
-  ebsId        String     @unique
-  brn          String
-  tan          String?
-  businessAddr String?
-  phone        String?
-  createdAt    DateTime   @default(now())
-  userName     String    @unique
-  areaCode     Int
-  apiKeys      ApiKey[]
-  auditLogs    AuditLog[]
+  id        String     @id @default(cuid())
+  name      String
+  userName  String     @unique
+  ebsId     String     @unique
+  areaCode  Int
+  password  String
+  createdAt DateTime   @default(now())
+  apiKeys   ApiKey[]
+  auditLogs AuditLog[]
 }
 
 model ApiKey {
