@@ -1,6 +1,14 @@
 require('dotenv').config();
 const express = require("express");
 const app = express();
+const cors = require("cors");
+
+// ── CORS
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS?.split(",") || "*",
+  methods: ["GET", "POST", "DELETE", "PUT"],
+  allowedHeaders: ["Content-Type", "x-api-key", "x-admin-secret"],
+}));
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
